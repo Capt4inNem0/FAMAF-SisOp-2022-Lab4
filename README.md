@@ -29,7 +29,7 @@ Se utilizó C-Lion como IDE, y
 ### Installing necessary libraries: 
 
 ```sh
-sudo apt-get install check make test
+sudo apt-get install check make test libglib2.0-dev libfuse-dev 
 ```
 
 ### GIT USEFUL COMMANDS
@@ -38,10 +38,19 @@ sudo apt-get install check make test
 ```sh
 git clone https://<your_user_name>:<app_password>@bitbucket.org/sistop-famaf/so22lab4g15.git
 ```
+## Crear Ejecutable fat-fuse / Compilar
+
+```sh
+cd path/to/where/fat-fuse.c_and_makefile_are/
+
+make
+```
 
 ## Montar
 
 ```sh
+mkdir mnt
+
 ./fat-fuse ../imagenes/resources/bb_fs.img mnt
 ```
 ## Desmontar
