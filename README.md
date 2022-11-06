@@ -39,15 +39,15 @@ sudo apt-get install check make test
 git clone https://<your_user_name>:<app_password>@bitbucket.org/sistop-famaf/so22lab4g15.git
 ```
 
-## Limpiar ejecutables y archivos compilados
+## Montar
 
 ```sh
-make clean
+./fat-fuse ../imagenes/resources/bb_fs.img mnt
 ```
-## Compilar
+## Desmontar
 
 ```sh
-make CPUS=1 qemu
+umount mnt
 ```
  
 ## Desarrollo <span id="id5"/>
