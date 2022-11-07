@@ -26,26 +26,31 @@
 #define LOG_MESSAGE_SIZE 100
 #define DATE_MESSAGE_SIZE 30
 
-// static void now_to_str(char *buf) {
-//     time_t now = time(NULL);
-//     struct tm *timeinfo;
-//     timeinfo = localtime(&now);
+static void now_to_str(char *buf) {
+    time_t now = time(NULL);
+    struct tm *timeinfo;
+    timeinfo = localtime(&now);
 
-//     strftime(buf, DATE_MESSAGE_SIZE, "%d-%m-%Y %H:%M", timeinfo);
-// }
+    strftime(buf, DATE_MESSAGE_SIZE, "%d-%m-%Y %H:%M", timeinfo);
+}
 
-// static void fat_fuse_log_activity(char *operation_type, fat_file file) {
-//     char buf[LOG_MESSAGE_SIZE] = "";
-//     now_to_str(buf);
-//     strcat(buf, "\t");
-//     strcat(buf, getlogin());
-//     strcat(buf, "\t");
-//     strcat(buf, file->filepath);
-//     strcat(buf, "\t");
-//     strcat(buf, operation_type);
-//     strcat(buf, "\n");
-//     int message_size = strlen(buf);
-// }
+static void fat_fuse_log_activity(char *operation_type, fat_file file) {
+    char buf[LOG_MESSAGE_SIZE] = "";
+    now_to_str(buf);
+    strcat(buf, "\t");
+    strcat(buf, getlogin());
+    strcat(buf, "\t");
+    strcat(buf, file->filepath);
+    strcat(buf, "\t");
+    strcat(buf, operation_type);
+    strcat(buf, "\n");
+    int message_size = strlen(buf);
+
+    open(file);
+    dup2(file,0);
+    printf("%s",buf);
+    close(file);
+}
 
 
 /* Get file attributes (file descriptor version) */
@@ -178,6 +183,8 @@ int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
         return -errno;
     }
 
+    fat_fuse_log_activity(fat_fuse_read,fs.log);
+
     return bytes_read;
 }
 
@@ -192,6 +199,8 @@ int fat_fuse_write(const char *path, const char *buf, size_t size, off_t offset,
         return 0; // Nothing to write
     if (offset > file->dentry->file_size)
         return -EOVERFLOW;
+
+    fat_fuse_log_activity(fat_fuse_write,fs.log);
 
     return fat_file_pwrite(file, buf, size, offset, parent);
 }
