@@ -363,13 +363,13 @@ int fat_fuse_rmdir(const char *path){
     if (!fat_file_is_directory(file))
         return ENOTDIR;
 
-    parent = fat_tree_get_parent(file_node);
-
     if (fat_tree_has_children(file_node)){
         errno = ENOTEMPTY;
         return -errno;
     }
-    
+
+    parent = fat_tree_get_parent(file_node);
+
     fat_file_delete(file, parent);
 
     // Actualizar el árbol de directorios 
@@ -377,6 +377,3 @@ int fat_fuse_rmdir(const char *path){
 
     return -errno;
 }
-
-
-
