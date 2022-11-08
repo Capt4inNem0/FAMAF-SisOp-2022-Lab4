@@ -26,6 +26,7 @@
 #define LOG_MESSAGE_SIZE 100
 #define DATE_MESSAGE_SIZE 30
 
+/*
 static void now_to_str(char *buf) {
     time_t now = time(NULL);
     struct tm *timeinfo;
@@ -52,6 +53,7 @@ static void fat_fuse_log_activity(char *operation_type, fat_file file) {
     close(file);
 }
 
+*/
 
 /* Get file attributes (file descriptor version) */
 int fat_fuse_fgetattr(const char *path, struct stat *stbuf,
@@ -183,7 +185,7 @@ int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
         return -errno;
     }
 
-    fat_fuse_log_activity(fat_fuse_read,fs.log);
+    //fat_fuse_log_activity(fat_fuse_read,fs.log);
 
     return bytes_read;
 }
@@ -200,7 +202,7 @@ int fat_fuse_write(const char *path, const char *buf, size_t size, off_t offset,
     if (offset > file->dentry->file_size)
         return -EOVERFLOW;
 
-    fat_fuse_log_activity(fat_fuse_write,fs.log);
+    //fat_fuse_log_activity(fat_fuse_write,fs.log);
 
     return fat_file_pwrite(file, buf, size, offset, parent);
 }
@@ -319,3 +321,62 @@ int fat_fuse_truncate(const char *path, off_t offset) {
     fat_file_truncate(file, offset, parent);
     return -errno;
 }
+
+/* Remove file */
+int fat_fuse_unlink(const char *path) {
+    errno = 0;
+    fat_volume vol = get_fat_volume();
+    fat_file file = NULL, parent = NULL;
+
+    fat_tree_node file_node = fat_tree_node_search(vol->file_tree, path);
+    if (file_node == NULL || errno != 0) {
+        errno = ENOENT;
+        return -errno;
+    }
+
+    file = fat_tree_get_file(file_node);
+    if (fat_file_is_directory(file))
+        return -EISDIR;
+
+    parent = fat_tree_get_parent(file_node);
+    fat_file_delete(file, parent);
+
+    // Actualizar el árbol de directorios 
+    vol->file_tree = fat_tree_delete(vol->file_tree, path);    
+
+    return -errno;
+}
+/* Remove dir */
+// Elimina el directorio solo si está vacío
+int fat_fuse_rmdir(const char *path){
+    errno = 0;
+    fat_volume vol = get_fat_volume();
+    fat_file file = NULL, parent = NULL;
+
+    fat_tree_node file_node = fat_tree_node_search(vol->file_tree, path);
+    if (file_node == NULL || errno != 0) {
+        errno = ENOENT;
+        return -errno;
+    }
+
+    file = fat_tree_get_file(file_node);
+    if (!fat_file_is_directory(file))
+        return ENOTDIR;
+
+    parent = fat_tree_get_parent(file_node);
+
+    if (fat_tree_has_children(file_node)){
+        errno = ENOTEMPTY;
+        return -errno;
+    }
+    
+    fat_file_delete(file, parent);
+
+    // Actualizar el árbol de directorios 
+    vol->file_tree = fat_tree_delete(vol->file_tree, path);    
+
+    return -errno;
+}
+
+
+
