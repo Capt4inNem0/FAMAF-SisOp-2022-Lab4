@@ -507,7 +507,7 @@ void fat_file_delete(fat_file file, fat_file parent){
     u32 last_cluster = 0, next_cluster = 0;
 
     last_cluster = file->start_cluster;
-    
+
     // Mark following clusters as not used
     while (fat_table_cluster_is_valid(last_cluster)) {
         // If there was an error, we continue with the function.
@@ -516,7 +516,7 @@ void fat_file_delete(fat_file file, fat_file parent){
         last_cluster = next_cluster;
     }
 
-    //fat_table_set_next_cluster(file->table, last_cluster, FAT_CLUSTER_FREE); 
+    // fat_table_set_next_cluster(file->table, last_cluster, FAT_CLUSTER_FREE);
 
     file->dentry->base_name[0] = FAT_FILENAME_DELETED_CHAR;
     write_dir_entry(parent, file);
