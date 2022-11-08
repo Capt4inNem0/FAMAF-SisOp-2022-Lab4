@@ -118,6 +118,15 @@ h_tree h_tree_search(const h_tree root, const void *key,
     return root; // it's this one!
 }
 
+int h_tree_has_children(h_tree root){
+    int has_children = 0;
+
+    if(root->h_children != NULL){
+        has_children = 1;
+    }
+    return has_children;
+}
+
 /***************** MODIFIERS *****************/
 static inline void update_size(h_tree root) {
     root->size = 1 + h_tree_size(root->left) + h_tree_size(root->right);

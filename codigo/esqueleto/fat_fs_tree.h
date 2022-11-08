@@ -108,4 +108,6 @@ void **fat_tree_flatten_preorder(const fat_tree tree);
  */
 fat_file *fat_tree_flatten_h_children(const fat_tree_node dir_node);
 
+int fat_tree_has_children(fat_tree_node tree);
+
 #endif /* FAT_FS_TREE_H */

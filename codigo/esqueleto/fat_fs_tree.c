@@ -107,6 +107,10 @@ void fat_tree_iterate_preorder(fat_tree tree, data_modify_fn mod_fn) {
     }
 }
 
+int fat_tree_has_children(fat_tree_node tree){
+    return h_tree_has_children(tree);
+}
+
 // DEBUGGING FUNCTIONS
 static void print_node(void *file_data) {
     fat_file file = (fat_file)file_data;
@@ -138,3 +142,5 @@ fat_file *fat_tree_flatten_h_children(const fat_tree_node dir_node) {
     h_tree_flatten_h_children(dir_node, (void **)elem_array);
     return elem_array;
 }
+
+

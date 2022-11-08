@@ -105,4 +105,6 @@ void h_tree_flatten_preorder(const h_tree tree, void **elem_array);
  */
 void h_tree_flatten_h_children(const h_tree root, void **elem_array);
 
+int h_tree_has_children(h_tree root);
+
 #endif /* HIERARCHY_TREE_H */
