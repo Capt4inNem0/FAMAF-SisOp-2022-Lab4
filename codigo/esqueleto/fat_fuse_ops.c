@@ -57,6 +57,22 @@ static void fat_fuse_log_activity(char *operation_type, fat_file file) {
     printf("%s",buf);
     close(file);
     //End Rev
+
+    //Idea para segundo inciso - (No funciona)
+    struct fuse_file_info fi;
+    struct stat stbuf;
+
+    fat_fuse_getattr(file->filepath, &stbuf);
+
+    fat_fuse_fgetattr(file->filepath, &stbuf, &fi);
+
+    fat_fuse_open(file->filepath, &fi);
+
+    fat_fuse_write(file->filepath, buf, message_size, message_size, &fi);
+ 
+    fat_fuse_release(file->filepath, &fi);
+    //Final idea para segundo inciso 
+
     */
 
     
