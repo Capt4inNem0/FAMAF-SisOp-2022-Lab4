@@ -74,8 +74,7 @@ static void fat_fuse_log_activity(char *operation_type, fat_file file) {
     //Final idea para segundo inciso 
 
     */
-
-    
+   
 }
 
 static void fat_fuse_log_activity_to_file(char *operation_type) {
@@ -224,9 +223,11 @@ int fat_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 /* Read data from a file */
 int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
                   struct fuse_file_info *fi) {
+
+    if(strcmp(path, LOG_FILE_LOCATION)) fat_fuse_log_activity_to_file("read");
+    
     errno = 0;
     int bytes_read;
-    fat_fuse_log_activity_to_file("read");
     fat_tree_node file_node = (fat_tree_node)fi->fh;
     fat_file file = fat_tree_get_file(file_node);
     fat_file parent = fat_tree_get_parent(file_node);
@@ -244,8 +245,8 @@ int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
 /* Write data from a file */
 int fat_fuse_write(const char *path, const char *buf, size_t size, off_t offset,
                    struct fuse_file_info *fi) {
-
-    fat_fuse_log_activity_to_file("write");
+    
+    if(strcmp(path, LOG_FILE_LOCATION)) fat_fuse_log_activity_to_file("write");
 
     fat_tree_node file_node = (fat_tree_node)fi->fh;
     fat_file file = fat_tree_get_file(file_node);
