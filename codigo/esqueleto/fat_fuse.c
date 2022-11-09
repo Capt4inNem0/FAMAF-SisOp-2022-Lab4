@@ -130,6 +130,23 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    
+    //Una alternativa a lo siguiente es usar algunas estructura del estilo singleton en
+    //fat_fuse_ops.c
+    fat_tree_node log_node;
+    bool err = false;
+    log_node = fat_tree_node_search(vol->file_tree, "/fs.log");
+    if (log_node == NULL) {
+        //Crear log file
+        err = fat_fuse_mknodinvol("/fs.log", vol);
+        
+        if (err){
+            fat_error("Log file couldn't be created\n");
+            return 1;
+        }
+    }
+    
+
     // Call fuse_main() to pass control to FUSE.  This will daemonize the
     // process, causing it to detach from the terminal.  fat_volume_unmount()
     // will not be called until the filesystem is unmounted and fuse_main()
