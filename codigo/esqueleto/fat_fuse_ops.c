@@ -28,7 +28,7 @@
 
 static const char * LOG_FILE_LOCATION = "/fs.log";
 
-/*
+
 static void now_to_str(char *buf) {
     time_t now = time(NULL);
     struct tm *timeinfo;
@@ -36,10 +36,10 @@ static void now_to_str(char *buf) {
 
     strftime(buf, DATE_MESSAGE_SIZE, "%d-%m-%Y %H:%M", timeinfo);
 }
-*/
+
 
 static void fat_fuse_log_activity(char *operation_type, fat_file file) {
-    /*
+    
     char buf[LOG_MESSAGE_SIZE] = "";
     now_to_str(buf);
     strcat(buf, "\t");
@@ -51,30 +51,17 @@ static void fat_fuse_log_activity(char *operation_type, fat_file file) {
     strcat(buf, "\n");
     int message_size = strlen(buf);
 
-    //Rev
-    open(file);
-    dup2(file,0);
-    printf("%s",buf);
-    close(file);
-    //End Rev
 
-    //Idea para segundo inciso - (No funciona)
     struct fuse_file_info fi;
-    struct stat stbuf;
-
-    fat_fuse_getattr(file->filepath, &stbuf);
-
-    fat_fuse_fgetattr(file->filepath, &stbuf, &fi);
 
     fat_fuse_open(file->filepath, &fi);
 
-    fat_fuse_write(file->filepath, buf, message_size, message_size, &fi);
- 
-    fat_fuse_release(file->filepath, &fi);
-    //Final idea para segundo inciso 
+    fat_fuse_write(file->filepath, buf, message_size, 0, &fi);
 
-    */
-   
+    fat_fuse_release(file->filepath, &fi);
+    
+    fat_error("Log written");
+
 }
 
 static void fat_fuse_log_activity_to_file(char *operation_type) {
@@ -85,15 +72,15 @@ static void fat_fuse_log_activity_to_file(char *operation_type) {
     bool err = false;
     vol = get_fat_volume();
     log_node = fat_tree_node_search(vol->file_tree, LOG_FILE_LOCATION);
-    DEBUG("STATUS A: %d", log_node == NULL);
+
     if (log_node == NULL) {
+        fat_error("Log created");
 
         err = fat_fuse_mknod(LOG_FILE_LOCATION, 0, 0);
         if (err) {
             fat_error("Unknown error");
         }
         
-        DEBUG("STATUS B: %d", log_node == NULL);
         log_node = fat_tree_node_search(vol->file_tree, LOG_FILE_LOCATION);
     }
     
@@ -225,7 +212,7 @@ int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
                   struct fuse_file_info *fi) {
 
     if(strcmp(path, LOG_FILE_LOCATION)) fat_fuse_log_activity_to_file("read");
-    
+
     errno = 0;
     int bytes_read;
     fat_tree_node file_node = (fat_tree_node)fi->fh;
@@ -237,7 +224,6 @@ int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
         return -errno;
     }
 
-    //fat_fuse_log_activity(fat_fuse_read,fs.log);
 
     return bytes_read;
 }
@@ -257,7 +243,6 @@ int fat_fuse_write(const char *path, const char *buf, size_t size, off_t offset,
     if (offset > file->dentry->file_size)
         return -EOVERFLOW;
 
-    //fat_fuse_log_activity(fat_fuse_write,fs.log);
 
     return fat_file_pwrite(file, buf, size, offset, parent);
 }
