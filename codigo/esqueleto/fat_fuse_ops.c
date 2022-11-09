@@ -285,34 +285,6 @@ int fat_fuse_mknod(const char *path, mode_t mode, dev_t dev) {
 }
 
 
-int fat_fuse_mknodinvol(const char *path, fat_volume vol) {
-    errno = 0;
-    fat_file parent, new_file;
-    fat_tree_node parent_node;
-
-    // The system has already checked the path does not exist. We get the parent
-    parent_node = fat_tree_node_search(vol->file_tree, dirname(strdup(path)));
-    if (parent_node == NULL) {
-        errno = ENOENT;
-        return -errno;
-    }
-    parent = fat_tree_get_file(parent_node);
-    if (!fat_file_is_directory(parent)) {
-        fat_error("Error! Parent is not directory\n");
-        errno = ENOTDIR;
-        return -errno;
-    }
-    new_file = fat_file_init(vol->table, false, strdup(path));
-    if (errno < 0) {
-        return -errno;
-    }
-    // insert to directory tree representation
-    vol->file_tree = fat_tree_insert(vol->file_tree, parent_node, new_file);
-    // Write dentry in parent cluster
-    fat_file_dentry_add_child(parent, new_file);
-    return -errno;
-}
-
 
 int fat_fuse_utime(const char *path, struct utimbuf *buf) {
     errno = 0;

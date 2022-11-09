@@ -23,6 +23,5 @@ int fat_fuse_write(const char *path, const char *buf, size_t size, off_t offset,
                    struct fuse_file_info *fi);
 int fat_fuse_unlink(const char *path);
 int fat_fuse_rmdir(const char *path);
-int fat_fuse_mknodinvol(const char *path, fat_volume vol);
 
 #endif /* _FAT_FS_OPS_H */

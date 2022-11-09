@@ -133,17 +133,27 @@ int main(int argc, char **argv) {
     
     //Una alternativa a lo siguiente es usar algunas estructura del estilo singleton en
     //fat_fuse_ops.c
-    fat_tree_node log_node;
-    bool err = false;
+    fat_tree_node log_node, parent_node;
+    fat_file parent_file, log_file;
     log_node = fat_tree_node_search(vol->file_tree, "/fs.log");
+    
     if (log_node == NULL) {
         //Crear log file
-        err = fat_fuse_mknodinvol("/fs.log", vol);
+
+        parent_node = fat_tree_node_search(vol->file_tree, "/");
         
-        if (err){
+        parent_file = fat_tree_get_file(parent_node);
+        
+        log_file = fat_file_init(vol->table, false, "/fs.log");
+        
+        if (errno < 0) {
             fat_error("Log file couldn't be created\n");
-            return 1;
+            return -errno;
         }
+        // insert to directory tree representation
+        vol->file_tree = fat_tree_insert(vol->file_tree, parent_node, log_file);
+        // Write dentry in parent cluster
+        fat_file_dentry_add_child(parent_file, log_file);
     }
     
 
