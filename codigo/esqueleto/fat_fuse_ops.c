@@ -56,7 +56,7 @@ static void fat_fuse_log_activity(char *operation_type, fat_file file) {
 
     fat_fuse_open(file->filepath, &fi);
 
-    fat_fuse_write(file->filepath, buf, message_size, 0, &fi);
+    fat_fuse_write(file->filepath, buf, message_size, file->dentry->file_size, &fi);
 
     fat_fuse_release(file->filepath, &fi);
     
