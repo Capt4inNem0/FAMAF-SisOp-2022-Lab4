@@ -26,6 +26,8 @@
 #define LOG_MESSAGE_SIZE 100
 #define DATE_MESSAGE_SIZE 30
 
+static const char * LOG_FILE_LOCATION = "/fs.log";
+
 /*
 static void now_to_str(char *buf) {
     time_t now = time(NULL);
@@ -34,8 +36,10 @@ static void now_to_str(char *buf) {
 
     strftime(buf, DATE_MESSAGE_SIZE, "%d-%m-%Y %H:%M", timeinfo);
 }
+*/
 
 static void fat_fuse_log_activity(char *operation_type, fat_file file) {
+    /*
     char buf[LOG_MESSAGE_SIZE] = "";
     now_to_str(buf);
     strcat(buf, "\t");
@@ -47,13 +51,43 @@ static void fat_fuse_log_activity(char *operation_type, fat_file file) {
     strcat(buf, "\n");
     int message_size = strlen(buf);
 
+    //Rev
     open(file);
     dup2(file,0);
     printf("%s",buf);
     close(file);
+    //End Rev
+    */
+
+    
 }
 
-*/
+static void fat_fuse_log_activity_to_file(char *operation_type) {
+
+    fat_tree_node log_node;
+    fat_file log_file;
+    fat_volume vol;
+    bool err = false;
+    vol = get_fat_volume();
+    log_node = fat_tree_node_search(vol->file_tree, LOG_FILE_LOCATION);
+    DEBUG("STATUS A: %d", log_node == NULL);
+    if (log_node == NULL) {
+
+        err = fat_fuse_mknod(LOG_FILE_LOCATION, 0, 0);
+        if (err) {
+            fat_error("Unknown error");
+        }
+        
+        DEBUG("STATUS B: %d", log_node == NULL);
+        log_node = fat_tree_node_search(vol->file_tree, LOG_FILE_LOCATION);
+    }
+    
+    log_file = fat_tree_get_file(log_node);
+
+    fat_fuse_log_activity(operation_type, log_file);
+}
+
+
 
 /* Get file attributes (file descriptor version) */
 int fat_fuse_fgetattr(const char *path, struct stat *stbuf,
@@ -176,6 +210,7 @@ int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
                   struct fuse_file_info *fi) {
     errno = 0;
     int bytes_read;
+    fat_fuse_log_activity_to_file("read");
     fat_tree_node file_node = (fat_tree_node)fi->fh;
     fat_file file = fat_tree_get_file(file_node);
     fat_file parent = fat_tree_get_parent(file_node);
@@ -193,6 +228,9 @@ int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
 /* Write data from a file */
 int fat_fuse_write(const char *path, const char *buf, size_t size, off_t offset,
                    struct fuse_file_info *fi) {
+
+    fat_fuse_log_activity_to_file("write");
+
     fat_tree_node file_node = (fat_tree_node)fi->fh;
     fat_file file = fat_tree_get_file(file_node);
     fat_file parent = fat_tree_get_parent(file_node);
@@ -283,6 +321,7 @@ int fat_fuse_mknod(const char *path, mode_t mode, dev_t dev) {
     fat_file_dentry_add_child(parent, new_file);
     return -errno;
 }
+
 
 
 
