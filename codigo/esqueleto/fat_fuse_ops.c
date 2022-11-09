@@ -38,7 +38,7 @@ static void now_to_str(char *buf) {
 }
 
 
-static void fat_fuse_log_activity(char *operation_type, fat_file file) {
+static void fat_fuse_log_activity(char *operation_type, fat_file log_file, fat_file file) {
     
     char buf[LOG_MESSAGE_SIZE] = "";
     now_to_str(buf);
@@ -51,20 +51,16 @@ static void fat_fuse_log_activity(char *operation_type, fat_file file) {
     strcat(buf, "\n");
     int message_size = strlen(buf);
 
-
     struct fuse_file_info fi;
 
-    fat_fuse_open(file->filepath, &fi);
-
-    fat_fuse_write(file->filepath, buf, message_size, file->dentry->file_size, &fi);
-
-    fat_fuse_release(file->filepath, &fi);
+    fat_fuse_open(log_file->filepath, &fi);
+    fat_fuse_write(log_file->filepath, buf, message_size, log_file->dentry->file_size, &fi);
+    fat_fuse_release(log_file->filepath, &fi);
     
-    fat_error("Log written");
-
+    //fat_error("Log written");
 }
 
-static void fat_fuse_log_activity_to_file(char *operation_type) {
+static void fat_fuse_log_activity_to_file(char *operation_type, fat_file file) {
 
     fat_tree_node log_node;
     fat_file log_file;
@@ -86,7 +82,7 @@ static void fat_fuse_log_activity_to_file(char *operation_type) {
     
     log_file = fat_tree_get_file(log_node);
 
-    fat_fuse_log_activity(operation_type, log_file);
+    fat_fuse_log_activity(operation_type, log_file, file);
 }
 
 
@@ -211,19 +207,18 @@ int fat_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
                   struct fuse_file_info *fi) {
 
-    if(strcmp(path, LOG_FILE_LOCATION)) fat_fuse_log_activity_to_file("read");
-
     errno = 0;
     int bytes_read;
     fat_tree_node file_node = (fat_tree_node)fi->fh;
     fat_file file = fat_tree_get_file(file_node);
     fat_file parent = fat_tree_get_parent(file_node);
 
+    if(strcmp(path, LOG_FILE_LOCATION)) fat_fuse_log_activity_to_file("read", file);
+
     bytes_read = fat_file_pread(file, buf, size, offset, parent);
     if (errno != 0) {
         return -errno;
     }
-
 
     return bytes_read;
 }
@@ -232,10 +227,9 @@ int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
 int fat_fuse_write(const char *path, const char *buf, size_t size, off_t offset,
                    struct fuse_file_info *fi) {
     
-    if(strcmp(path, LOG_FILE_LOCATION)) fat_fuse_log_activity_to_file("write");
-
     fat_tree_node file_node = (fat_tree_node)fi->fh;
     fat_file file = fat_tree_get_file(file_node);
+
     fat_file parent = fat_tree_get_parent(file_node);
 
     if (size == 0)
@@ -243,6 +237,7 @@ int fat_fuse_write(const char *path, const char *buf, size_t size, off_t offset,
     if (offset > file->dentry->file_size)
         return -EOVERFLOW;
 
+    if(strcmp(path, LOG_FILE_LOCATION)) fat_fuse_log_activity_to_file("write", file);
 
     return fat_file_pwrite(file, buf, size, offset, parent);
 }
