@@ -48,4 +48,8 @@ Thumbs.db
 *.mov
 *.wmv
 
+# Object files
 *.o
+
+#Text editors
+.vscode
