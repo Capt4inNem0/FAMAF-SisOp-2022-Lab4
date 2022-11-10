@@ -28,6 +28,15 @@
 
 static const char * LOG_FILE_LOCATION = "/fs.log";
 
+/*
+NOTA - IMPORTANTE 
+
+BORRAR fat_error("fat_fuse_FUNCTIONNAME\n"); ANTES DE TERMINAR
+
+Los fat_error("fat_fuse_FUNCTIONNAME\n"); aportan poca información extra al debuggear,
+pero se pueden dejar hasta antes de entregar el lab. Sirvieron un poco para hacer el
+tercer inciso de la tercera parte.
+*/
 
 static void now_to_str(char *buf) {
     time_t now = time(NULL);
@@ -57,7 +66,6 @@ static void fat_fuse_log_activity(char *operation_type, fat_file log_file, fat_f
     fat_fuse_write(log_file->filepath, buf, message_size, log_file->dentry->file_size, &fi);
     fat_fuse_release(log_file->filepath, &fi);
     
-    //fat_error("Log written");
 }
 
 static void fat_fuse_log_activity_to_file(char *operation_type, fat_file file) {
@@ -70,7 +78,6 @@ static void fat_fuse_log_activity_to_file(char *operation_type, fat_file file) {
     log_node = fat_tree_node_search(vol->file_tree, LOG_FILE_LOCATION);
 
     if (log_node == NULL) {
-        fat_error("Log created");
 
         err = fat_fuse_mknod(LOG_FILE_LOCATION, 0, 0);
         if (err) {
@@ -97,6 +104,7 @@ int fat_fuse_fgetattr(const char *path, struct stat *stbuf,
 
 /* Get file attributes (path version) */
 int fat_fuse_getattr(const char *path, struct stat *stbuf) {
+    fat_error("fat_fuse_getattr\n");
     fat_volume vol;
     fat_file file;
 
@@ -112,6 +120,7 @@ int fat_fuse_getattr(const char *path, struct stat *stbuf) {
 
 /* Open a file */
 int fat_fuse_open(const char *path, struct fuse_file_info *fi) {
+    fat_error("fat_fuse_open\n");
     fat_volume vol;
     fat_tree_node file_node;
     fat_file file;
@@ -130,6 +139,8 @@ int fat_fuse_open(const char *path, struct fuse_file_info *fi) {
 
 /* Open a directory */
 int fat_fuse_opendir(const char *path, struct fuse_file_info *fi) {
+    fat_error("fat_fuse_opendir\n");
+
     fat_volume vol = NULL;
     fat_tree_node file_node = NULL;
     fat_file file = NULL;
@@ -170,6 +181,7 @@ static void fat_fuse_read_children(fat_tree_node dir_node) {
 /* Add entries of a directory in @fi to @buf using @filler function. */
 int fat_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
                      off_t offset, struct fuse_file_info *fi) {
+    fat_error("fat_fuse_readdir\n");
     errno = 0;
     fat_tree_node dir_node = (fat_tree_node)fi->fh;
     fat_file dir = fat_tree_get_file(dir_node);
@@ -194,9 +206,11 @@ int fat_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     children = fat_tree_flatten_h_children(dir_node);
     child = children;
     while (*child != NULL) {
-        error = (*filler)(buf, (*child)->name, NULL, 0);
-        if (error != 0) {
-            return -errno;
+        if(strcmp((*child)->filepath, LOG_FILE_LOCATION)) {
+            error = (*filler)(buf, (*child)->name, NULL, 0);
+            if (error != 0) {
+                return -errno;
+            }
         }
         child++;
     }
@@ -206,7 +220,7 @@ int fat_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 /* Read data from a file */
 int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
                   struct fuse_file_info *fi) {
-
+    fat_error("fat_fuse_read\n");
     errno = 0;
     int bytes_read;
     fat_tree_node file_node = (fat_tree_node)fi->fh;
@@ -226,7 +240,7 @@ int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
 /* Write data from a file */
 int fat_fuse_write(const char *path, const char *buf, size_t size, off_t offset,
                    struct fuse_file_info *fi) {
-    
+    fat_error("fat_fuse_write\n");
     fat_tree_node file_node = (fat_tree_node)fi->fh;
     fat_file file = fat_tree_get_file(file_node);
 
@@ -244,6 +258,7 @@ int fat_fuse_write(const char *path, const char *buf, size_t size, off_t offset,
 
 /* Close a file */
 int fat_fuse_release(const char *path, struct fuse_file_info *fi) {
+    fat_error("fat_fuse_release\n");
     fat_tree_node file = (fat_tree_node)fi->fh;
     fat_tree_dec_num_times_opened(file);
     return 0;
@@ -251,12 +266,14 @@ int fat_fuse_release(const char *path, struct fuse_file_info *fi) {
 
 /* Close a directory */
 int fat_fuse_releasedir(const char *path, struct fuse_file_info *fi) {
+    fat_error("fat_fuse_releasedir\n");
     fat_tree_node file = (fat_tree_node)fi->fh;
     fat_tree_dec_num_times_opened(file);
     return 0;
 }
 
 int fat_fuse_mkdir(const char *path, mode_t mode) {
+    fat_error("fat_fuse_mkdir\n");
     errno = 0;
     fat_volume vol = NULL;
     fat_file parent = NULL, new_file = NULL;
@@ -290,6 +307,7 @@ int fat_fuse_mkdir(const char *path, mode_t mode) {
 
 /* Creates a new file in @path. @mode and @dev are ignored. */
 int fat_fuse_mknod(const char *path, mode_t mode, dev_t dev) {
+    fat_error("fat_fuse_mknod\n");
     errno = 0;
     fat_volume vol;
     fat_file parent, new_file;
@@ -323,6 +341,7 @@ int fat_fuse_mknod(const char *path, mode_t mode, dev_t dev) {
 
 
 int fat_fuse_utime(const char *path, struct utimbuf *buf) {
+    fat_error("fat_fuse_utime\n");
     errno = 0;
     fat_file parent = NULL;
     fat_volume vol = get_fat_volume();
@@ -342,6 +361,7 @@ int fat_fuse_utime(const char *path, struct utimbuf *buf) {
 
 /* Shortens the file at the given offset.*/
 int fat_fuse_truncate(const char *path, off_t offset) {
+    fat_error("fat_fuse_truncate\n");
     errno = 0;
     fat_volume vol = get_fat_volume();
     fat_file file = NULL, parent = NULL;
@@ -362,6 +382,7 @@ int fat_fuse_truncate(const char *path, off_t offset) {
 
 /* Remove file */
 int fat_fuse_unlink(const char *path) {
+    fat_error("fat_fuse_unlink\n");
     errno = 0;
     fat_volume vol = get_fat_volume();
     fat_file file = NULL, parent = NULL;
@@ -387,6 +408,7 @@ int fat_fuse_unlink(const char *path) {
 /* Remove dir */
 // Elimina el directorio solo si está vacío
 int fat_fuse_rmdir(const char *path){
+    fat_error("fat_fuse_rmdir\n");
     errno = 0;
     fat_volume vol = get_fat_volume();
     fat_file file = NULL, parent = NULL;
