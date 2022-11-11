@@ -26,17 +26,6 @@
 #define LOG_MESSAGE_SIZE 100
 #define DATE_MESSAGE_SIZE 30
 
-static const char * LOG_FILE_LOCATION = "/fs.log";
-
-/*
-NOTA - IMPORTANTE 
-
-BORRAR fat_error("fat_fuse_FUNCTIONNAME\n"); ANTES DE TERMINAR
-
-Los fat_error("fat_fuse_FUNCTIONNAME\n"); aportan poca información extra al debuggear,
-pero se pueden dejar hasta antes de entregar el lab. Sirvieron un poco para hacer el
-tercer inciso de la tercera parte.
-*/
 
 static void now_to_str(char *buf) {
     time_t now = time(NULL);
@@ -61,11 +50,9 @@ static void fat_fuse_log_activity(char *operation_type, fat_file log_file, fat_f
     int message_size = strlen(buf);
 
     struct fuse_file_info fi;
-
     fat_fuse_open(log_file->filepath, &fi);
     fat_fuse_write(log_file->filepath, buf, message_size, log_file->dentry->file_size, &fi);
     fat_fuse_release(log_file->filepath, &fi);
-    
 }
 
 static void fat_fuse_log_activity_to_file(char *operation_type, fat_file file) {
@@ -73,20 +60,26 @@ static void fat_fuse_log_activity_to_file(char *operation_type, fat_file file) {
     fat_tree_node log_node;
     fat_file log_file;
     fat_volume vol;
-    bool err = false;
+    //bool err = false;
     vol = get_fat_volume();
-    log_node = fat_tree_node_search(vol->file_tree, LOG_FILE_LOCATION);
+    log_node = fat_tree_node_search(vol->file_tree, BB_LOG_FILE);
 
     if (log_node == NULL) {
-
-        err = fat_fuse_mknod(LOG_FILE_LOCATION, 0, 0);
-        if (err) {
-            fat_error("Unknown error");
-        }
+        u32 bb_dir_clauster = search_bb_orphan_dir_cluster();
         
-        log_node = fat_tree_node_search(vol->file_tree, LOG_FILE_LOCATION);
+        if(bb_dir_clauster == 0){
+            // Crear directorio huérfano
+            bb_create_orphan_dir();
+            // Crear fs.log
+            fat_fuse_mknod(BB_LOG_FILE, 0, 0);
+        }
+        else{
+            // Leer fs.log del cluster e insertarlo en el árbol
+            bb_read_log(bb_dir_clauster);
+        }
     }
-    
+
+    log_node = fat_tree_node_search(vol->file_tree, BB_LOG_FILE);
     log_file = fat_tree_get_file(log_node);
 
     fat_fuse_log_activity(operation_type, log_file, file);
@@ -206,7 +199,7 @@ int fat_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     children = fat_tree_flatten_h_children(dir_node);
     child = children;
     while (*child != NULL) {
-        if(strcmp((*child)->filepath, LOG_FILE_LOCATION)) {
+        if(!bb_is_log_dirpath((*child)->filepath)) {
             error = (*filler)(buf, (*child)->name, NULL, 0);
             if (error != 0) {
                 return -errno;
@@ -227,7 +220,7 @@ int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
     fat_file file = fat_tree_get_file(file_node);
     fat_file parent = fat_tree_get_parent(file_node);
 
-    if(strcmp(path, LOG_FILE_LOCATION)) fat_fuse_log_activity_to_file("read", file);
+    if(!bb_is_log_filepath(path)) fat_fuse_log_activity_to_file("read", file);
 
     bytes_read = fat_file_pread(file, buf, size, offset, parent);
     if (errno != 0) {
@@ -251,7 +244,7 @@ int fat_fuse_write(const char *path, const char *buf, size_t size, off_t offset,
     if (offset > file->dentry->file_size)
         return -EOVERFLOW;
 
-    if(strcmp(path, LOG_FILE_LOCATION)) fat_fuse_log_activity_to_file("write", file);
+    if(!bb_is_log_filepath(path)) fat_fuse_log_activity_to_file("write", file);
 
     return fat_file_pwrite(file, buf, size, offset, parent);
 }
