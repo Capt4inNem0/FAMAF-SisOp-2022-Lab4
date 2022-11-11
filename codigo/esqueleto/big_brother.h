@@ -10,12 +10,14 @@
 
 int bb_is_log_file_dentry(fat_dir_entry dir_entry);
 
-int bb_is_log_filepath(char *filepath);
+int bb_is_log_filepath(const char *filepath);
 
-int bb_is_log_dirpath(char *filepath);
+int bb_is_log_dirpath(const char *filepath);
 
 u32 search_bb_orphan_dir_cluster();
 
-int bb_init_log_dir(u32 start_cluster);
+void bb_create_orphan_dir();
+
+void bb_read_log(u32 start_cluster);
 
 #endif
