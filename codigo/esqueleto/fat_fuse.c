@@ -6,12 +6,19 @@
 
 #include "fat_fuse_ops.h"
 #include "fat_volume.h"
+#include "fat_fuse.h"
 
 #include <alloca.h>
 #include <errno.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <string.h>
+
+global_options globals = {1};
+
+global_options getGlobalOptions() {
+  return globals;
+}
 
 static void usage() {
     const char *usage_str =
@@ -25,12 +32,13 @@ static void usage_short() {
     fputs(usage_str, stderr);
 }
 
-static const char *shortopts = "dfhr";
+static const char *shortopts = "dfhrl";
 static const struct option longopts[] = {
     {"debug", no_argument, NULL, 'd'},
     {"foreground", no_argument, NULL, 'f'},
     {"help", no_argument, NULL, 'h'},
     {"readonly", no_argument, NULL, 'r'},
+    {"hiddenlogfile", no_argument, NULL, 'l'},
     {NULL, 0, NULL, 0},
 };
 
@@ -81,6 +89,9 @@ int main(int argc, char **argv) {
         case 'r':
             mount_flags = FAT_MOUNT_FLAG_READONLY;
             break;
+        case 'l':
+          globals.hide_logfile = 0;
+          break;
         default:
             usage_short();
             return 2;
