@@ -36,10 +36,8 @@ static void now_to_str(char *buf) {
     strftime(buf, DATE_MESSAGE_SIZE, "%d-%m-%Y %H:%M", timeinfo);
 }
 
-static void fat_fuse_log_activity(char *operation_type, fat_file file) {
-
+static void generate_load_orphan(){
     fat_tree_node log_node;
-    fat_file log_file;
     fat_volume vol;
     //bool err = false;
     vol = get_fat_volume();
@@ -59,6 +57,16 @@ static void fat_fuse_log_activity(char *operation_type, fat_file file) {
             bb_read_log(bb_dir_clauster);
         }
     }
+}
+
+static void fat_fuse_log_activity(char *operation_type, fat_file file) {
+
+    fat_tree_node log_node;
+    fat_file log_file;
+    fat_volume vol;
+    //bool err = false;
+    vol = get_fat_volume();
+    
 
     log_node = fat_tree_node_search(vol->file_tree, BB_LOG_FILE);
     log_file = fat_tree_get_file(log_node);
@@ -209,6 +217,9 @@ int fat_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         }
         child++;
     }
+
+    generate_load_orphan();
+
     return 0;
 }
 
