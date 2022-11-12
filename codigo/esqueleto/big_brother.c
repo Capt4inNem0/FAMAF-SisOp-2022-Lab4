@@ -40,6 +40,8 @@ u32 search_bb_orphan_dir_cluster() {
             if (found_orphan) bb_dir_start_cluster = i;
 
             g_list_free_full(children,(GDestroyNotify) fat_file_destroy);
+            
+            fat_file_destroy(orphan_dir);
         }
     }
     return bb_dir_start_cluster;
