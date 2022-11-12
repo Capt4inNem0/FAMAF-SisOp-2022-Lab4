@@ -21,6 +21,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include "fat_fuse.h"
 
 
 #define LOG_MESSAGE_SIZE 100
@@ -34,7 +35,6 @@ static void now_to_str(char *buf) {
 
     strftime(buf, DATE_MESSAGE_SIZE, "%d-%m-%Y %H:%M", timeinfo);
 }
-
 
 static void fat_fuse_log_activity(char *operation_type, fat_file log_file, fat_file file) {
     
@@ -180,6 +180,7 @@ int fat_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     fat_file dir = fat_tree_get_file(dir_node);
     fat_file *children = NULL, *child = NULL;
     int error = 0;
+    bool hidden_log = getGlobalOptions().hide_logfile;
 
     // Insert first two filenames (. and ..)
     if ((*filler)(buf, ".", NULL, 0) || (*filler)(buf, "..", NULL, 0)) {
@@ -199,7 +200,7 @@ int fat_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     children = fat_tree_flatten_h_children(dir_node);
     child = children;
     while (*child != NULL) {
-        if(!bb_is_log_dirpath((*child)->filepath)) {
+        if(!bb_is_log_dirpath((*child)->filepath) || !hidden_log) {
             error = (*filler)(buf, (*child)->name, NULL, 0);
             if (error != 0) {
                 return -errno;
