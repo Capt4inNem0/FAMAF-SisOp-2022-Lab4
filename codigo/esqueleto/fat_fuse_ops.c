@@ -26,7 +26,9 @@
 
 #define LOG_MESSAGE_SIZE 100
 #define DATE_MESSAGE_SIZE 30
+#define FORBIDDEN_ARRAY_SIZE 100
 
+const char* FORBIDDEN[] = {"Oldspeak", "English", "revolution", "Emmanuel", "Goldstein"};
 
 static void now_to_str(char *buf) {
     time_t now = time(NULL);
@@ -36,26 +38,7 @@ static void now_to_str(char *buf) {
     strftime(buf, DATE_MESSAGE_SIZE, "%d-%m-%Y %H:%M", timeinfo);
 }
 
-static void fat_fuse_log_activity(char *operation_type, fat_file log_file, fat_file file) {
-    
-    char buf[LOG_MESSAGE_SIZE] = "";
-    now_to_str(buf);
-    strcat(buf, "\t");
-    strcat(buf, getlogin());
-    strcat(buf, "\t");
-    strcat(buf, file->filepath);
-    strcat(buf, "\t");
-    strcat(buf, operation_type);
-    strcat(buf, "\n");
-    int message_size = strlen(buf);
-
-    struct fuse_file_info fi;
-    fat_fuse_open(log_file->filepath, &fi);
-    fat_fuse_write(log_file->filepath, buf, message_size, log_file->dentry->file_size, &fi);
-    fat_fuse_release(log_file->filepath, &fi);
-}
-
-static void fat_fuse_log_activity_to_file(char *operation_type, fat_file file) {
+static void fat_fuse_log_activity(char *operation_type, fat_file file, const char* query, size_t query_size) {
 
     fat_tree_node log_node;
     fat_file log_file;
@@ -82,7 +65,27 @@ static void fat_fuse_log_activity_to_file(char *operation_type, fat_file file) {
     log_node = fat_tree_node_search(vol->file_tree, BB_LOG_FILE);
     log_file = fat_tree_get_file(log_node);
 
-    fat_fuse_log_activity(operation_type, log_file, file);
+    
+
+    char buf[LOG_MESSAGE_SIZE + FORBIDDEN_ARRAY_SIZE] = "";
+    now_to_str(buf);
+    strcat(buf, "\t");
+    strcat(buf, getlogin());
+    strcat(buf, "\t");
+    strcat(buf, file->filepath);
+    strcat(buf, "\t");
+    strcat(buf, operation_type);
+
+    //APPEND FORBIDDEN ARRAY HERE
+
+    strcat(buf, "\n");
+    int message_size = strlen(buf);
+
+    struct fuse_file_info fi;
+    fat_fuse_open(log_file->filepath, &fi);
+    fat_fuse_write(log_file->filepath, buf, message_size, log_file->dentry->file_size, &fi);
+    fat_fuse_release(log_file->filepath, &fi);
+
 }
 
 
@@ -221,9 +224,9 @@ int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
     fat_file file = fat_tree_get_file(file_node);
     fat_file parent = fat_tree_get_parent(file_node);
 
-    if(!bb_is_log_filepath(path)) fat_fuse_log_activity_to_file("read", file);
 
     bytes_read = fat_file_pread(file, buf, size, offset, parent);
+    if(!bb_is_log_filepath(path)) fat_fuse_log_activity("read", file, buf, size);
     if (errno != 0) {
         return -errno;
     }
@@ -235,6 +238,7 @@ int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
 int fat_fuse_write(const char *path, const char *buf, size_t size, off_t offset,
                    struct fuse_file_info *fi) {
     fat_error("fat_fuse_write\n");
+    int bytes_written;
     fat_tree_node file_node = (fat_tree_node)fi->fh;
     fat_file file = fat_tree_get_file(file_node);
 
@@ -245,9 +249,11 @@ int fat_fuse_write(const char *path, const char *buf, size_t size, off_t offset,
     if (offset > file->dentry->file_size)
         return -EOVERFLOW;
 
-    if(!bb_is_log_filepath(path)) fat_fuse_log_activity_to_file("write", file);
+    bytes_written = fat_file_pwrite(file, buf, size, offset, parent);
 
-    return fat_file_pwrite(file, buf, size, offset, parent);
+    if(!bb_is_log_filepath(path)) fat_fuse_log_activity("write", file, buf, size);
+
+    return bytes_written;
 }
 
 /* Close a file */
