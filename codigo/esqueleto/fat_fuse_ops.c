@@ -26,9 +26,7 @@
 
 #define LOG_MESSAGE_SIZE 100
 #define DATE_MESSAGE_SIZE 30
-#define FORBIDDEN_ARRAY_SIZE 100
 
-const char* FORBIDDEN[] = {"Oldspeak", "English", "revolution", "Emmanuel", "Goldstein"};
 
 static void now_to_str(char *buf) {
     time_t now = time(NULL);
@@ -38,7 +36,7 @@ static void now_to_str(char *buf) {
     strftime(buf, DATE_MESSAGE_SIZE, "%d-%m-%Y %H:%M", timeinfo);
 }
 
-static void fat_fuse_log_activity(char *operation_type, fat_file file, const char* query, size_t query_size) {
+static void fat_fuse_log_activity(char *operation_type, fat_file file) {
 
     fat_tree_node log_node;
     fat_file log_file;
@@ -67,7 +65,7 @@ static void fat_fuse_log_activity(char *operation_type, fat_file file, const cha
 
     
 
-    char buf[LOG_MESSAGE_SIZE + FORBIDDEN_ARRAY_SIZE] = "";
+    char buf[LOG_MESSAGE_SIZE] = "";
     now_to_str(buf);
     strcat(buf, "\t");
     strcat(buf, getlogin());
@@ -75,9 +73,6 @@ static void fat_fuse_log_activity(char *operation_type, fat_file file, const cha
     strcat(buf, file->filepath);
     strcat(buf, "\t");
     strcat(buf, operation_type);
-
-    //APPEND FORBIDDEN ARRAY HERE
-
     strcat(buf, "\n");
     int message_size = strlen(buf);
 
@@ -103,6 +98,9 @@ int fat_fuse_getattr(const char *path, struct stat *stbuf) {
     fat_error("fat_fuse_getattr\n");
     fat_volume vol;
     fat_file file;
+
+    //Para ocultar bb de comandos como cd y cat, descomentar la siguiente linea:
+    //if(bb_is_log_dirpath(path) && getGlobalOptions().hide_logfile) return -ENOENT;
 
     vol = get_fat_volume();
     file = fat_tree_search(vol->file_tree, path);
@@ -224,9 +222,9 @@ int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
     fat_file file = fat_tree_get_file(file_node);
     fat_file parent = fat_tree_get_parent(file_node);
 
+    if(!bb_is_log_filepath(path)) fat_fuse_log_activity("read", file);
 
     bytes_read = fat_file_pread(file, buf, size, offset, parent);
-    if(!bb_is_log_filepath(path)) fat_fuse_log_activity("read", file, buf, size);
     if (errno != 0) {
         return -errno;
     }
@@ -238,22 +236,19 @@ int fat_fuse_read(const char *path, char *buf, size_t size, off_t offset,
 int fat_fuse_write(const char *path, const char *buf, size_t size, off_t offset,
                    struct fuse_file_info *fi) {
     fat_error("fat_fuse_write\n");
-    int bytes_written;
     fat_tree_node file_node = (fat_tree_node)fi->fh;
     fat_file file = fat_tree_get_file(file_node);
 
     fat_file parent = fat_tree_get_parent(file_node);
-
+    
     if (size == 0)
         return 0; // Nothing to write
     if (offset > file->dentry->file_size)
         return -EOVERFLOW;
 
-    bytes_written = fat_file_pwrite(file, buf, size, offset, parent);
+    if(!bb_is_log_filepath(path)) fat_fuse_log_activity("write", file);
 
-    if(!bb_is_log_filepath(path)) fat_fuse_log_activity("write", file, buf, size);
-
-    return bytes_written;
+    return fat_file_pwrite(file, buf, size, offset, parent);
 }
 
 /* Close a file */
