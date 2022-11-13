@@ -43,19 +43,21 @@ static void generate_load_orphan(){
     vol = get_fat_volume();
     log_node = fat_tree_node_search(vol->file_tree, BB_LOG_FILE);
 
-    if (log_node == NULL) {
-        u32 bb_dir_clauster = search_bb_orphan_dir_cluster();
+    if (log_node != NULL){
+        return;
+    }
+
+    u32 bb_dir_clauster = search_bb_orphan_dir_cluster();
         
-        if(bb_dir_clauster == 0){
-            // Crear directorio huérfano
-            bb_create_orphan_dir();
-            // Crear fs.log
-            fat_fuse_mknod(BB_LOG_FILE, 0, 0);
-        }
-        else{
-            // Leer fs.log del cluster e insertarlo en el árbol
-            bb_read_log(bb_dir_clauster);
-        }
+    if(bb_dir_clauster == 0){
+        // Crear directorio huérfano
+        bb_create_orphan_dir();
+        // Crear fs.log
+        fat_fuse_mknod(BB_LOG_FILE, 0, 0);
+    }
+    else{
+        // Leer fs.log del cluster e insertarlo en el árbol
+        bb_read_log(bb_dir_clauster);
     }
 }
 
@@ -63,15 +65,10 @@ static void fat_fuse_log_activity(char *operation_type, fat_file file) {
 
     fat_tree_node log_node;
     fat_file log_file;
-    fat_volume vol;
-    //bool err = false;
-    vol = get_fat_volume();
-    
+    fat_volume vol = get_fat_volume();
 
     log_node = fat_tree_node_search(vol->file_tree, BB_LOG_FILE);
     log_file = fat_tree_get_file(log_node);
-
-    
 
     char buf[LOG_MESSAGE_SIZE] = "";
     now_to_str(buf);
@@ -88,9 +85,7 @@ static void fat_fuse_log_activity(char *operation_type, fat_file file) {
     fat_fuse_open(log_file->filepath, &fi);
     fat_fuse_write(log_file->filepath, buf, message_size, log_file->dentry->file_size, &fi);
     fat_fuse_release(log_file->filepath, &fi);
-
 }
-
 
 
 /* Get file attributes (file descriptor version) */
@@ -342,8 +337,6 @@ int fat_fuse_mknod(const char *path, mode_t mode, dev_t dev) {
     fat_file_dentry_add_child(parent, new_file);
     return -errno;
 }
-
-
 
 
 int fat_fuse_utime(const char *path, struct utimbuf *buf) {
