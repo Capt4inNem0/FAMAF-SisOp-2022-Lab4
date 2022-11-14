@@ -335,16 +335,30 @@ void fat_utime(fat_file file, fat_file parent, const struct utimbuf *buf) {
 
 void fat_file_dentry_add_child(fat_file parent, fat_file child) {
     u32 nentries = parent->dir.nentries;
+    u32 *free_entry_index = g_list_nth_data(parent->dir.free_entries, 0);
     child->pos_in_parent = nentries;
+    if (free_entry_index == NULL) {
+        child->pos_in_parent = nentries;
+        fat_dir_entry terminator_entry =
+            fat_file_init_direntry(false, strdup(""), 2);
+        terminator_entry->base_name[0] = '\0';
+        fat_file aux_terminator_file =
+            init_file_from_dentry(terminator_entry, parent);
+        aux_terminator_file->pos_in_parent = child->pos_in_parent + 1;
+        write_dir_entry(parent, aux_terminator_file);
+        fat_file_destroy(aux_terminator_file);
+    } else {
+        child->pos_in_parent = *free_entry_index;
+    }
     write_dir_entry(parent, child);
     if (errno != 0) {
         return;
     }
     DEBUG("Adding child \"%s\" to \"%s\" in position %u", child->name,
           parent->filepath, parent->dir.nentries);
+    child->pos_in_parent = nentries;
     parent->dir.nentries++;
 }
-
 /* Returns %true iff the given FAT on-disk directory entry is the special
  * end-of-directory entry. */
 static bool is_end_of_directory(const fat_dir_entry disk_dentry) {
@@ -462,6 +476,15 @@ ssize_t fat_file_pread(fat_file file, void *buf, size_t size, off_t offset,
     fill_dentry_time_now(file->dentry, false, false);
     write_dir_entry(parent, file);
     return size - bytes_remaining;
+}
+
+void fat_file_init_dir_cluster(fat_file dir) {
+    // Borrar la dentry del archivo en el disco
+    size_t entry_size = sizeof(struct fat_dir_entry_s);
+    off_t dir_offset = fat_table_cluster_offset(dir->table, dir->start_cluster);
+    u32 *buf = alloca(entry_size);
+    *buf = 0;
+    pwrite(dir->table->fd, buf, entry_size, dir_offset);
 }
 
 void fat_file_truncate(fat_file file, off_t offset, fat_file parent) {
