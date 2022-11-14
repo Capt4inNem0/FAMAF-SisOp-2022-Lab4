@@ -503,6 +503,16 @@ void fat_file_truncate(fat_file file, off_t offset, fat_file parent) {
     write_dir_entry(parent, file);
 }
 
+void fat_file_init_dir_cluster(fat_file dir) {
+    // Borrar la dentry del archivo en el disco
+    size_t cluster_size =  fat_table_bytes_per_cluster(dir->table);
+    off_t dir_offset =
+        fat_table_cluster_offset(dir->table, dir->start_cluster);
+    u32 *buf = alloca(cluster_size);
+    *buf= 0;
+    pwrite(dir->table->fd, buf, cluster_size, dir_offset);
+}
+
 void fat_file_delete(fat_file file, fat_file parent){
     u32 last_cluster = 0, next_cluster = 0;
 

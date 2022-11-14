@@ -195,4 +195,6 @@ void fat_file_delete(fat_file file, fat_file parent);
 ssize_t fat_file_pwrite(fat_file file, const void *buf, size_t size,
                         off_t offset, fat_file parent);
 
+void fat_file_init_dir_cluster(fat_file dir);
+
 #endif /* _FAT_FILE_H */
