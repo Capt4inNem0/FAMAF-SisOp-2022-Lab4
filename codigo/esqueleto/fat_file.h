@@ -81,6 +81,8 @@ struct fat_file_s {
             // ones). It also marks the position of the first free space for a
             // dir_entry.
             u32 nentries;
+            // Unused entry indices' list
+            GList *free_entries;
         } dir;
         // Valid only for non-directory files
         struct {
@@ -194,5 +196,7 @@ void fat_file_delete(fat_file file, fat_file parent);
 
 ssize_t fat_file_pwrite(fat_file file, const void *buf, size_t size,
                         off_t offset, fat_file parent);
+
+void fat_file_init_dir_cluster(fat_file dir);
 
 #endif /* _FAT_FILE_H */
