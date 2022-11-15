@@ -72,6 +72,3 @@ Nosotros trabajamos sobre una abstraccion donde no es necesario actualizar la ta
 
 ### **6. Para los sistemas de archivos FAT32, la tabla FAT, ¿siempre tiene el mismo tamaño? En caso de que sí, ¿qué tamaño tiene?** ###
 Si, tiene un tamaño fijo de 512MB.
-
-
-
