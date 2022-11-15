@@ -56,7 +56,7 @@ Cuando se ejecuta fat-fuse con la opcion -d se muestran en el log la informacion
    
 ### **2. ¿Hay alguna manera de saber el nombre del archivo guardado en el cluster 157?** ###
 
-Para encontrar el nombre, deberiamos iterar en el arbol de directorios obteniendo los clusters de cada archivo y fijarnos si el cluster 157 se encuentra entre estos.
+Para encontrar el nombre, deberiamos iterar en el arbol de directorios obteniendo el primer cluster de cada archivo y a su vez recorrer todos los cluster en la cadena. Si encontramos el 157 entre estos, podemos obtener el campo *name* de la estructura fat_file correspondiente a ese archivo.
    
 ### **3. ¿Dónde se guardan las entradas de directorio?¿Cuántos archivos puede tener adentro un directorio en FAT32?** ###
 
