@@ -62,3 +62,15 @@ umount mnt
 ## Desarrollo <span id="id5"/>
 
 ## Respuestas <span id="id6"/>
+1) Cuando se ejecuta fat-fuse con la opcion -d se muestran en el log la informacion de DEBUG, que incluye llamadas a funciones,
+   prints, comunicacion con la interfaz, o en nuestra implementación, donde se llame a DEBUG().
+2) Para encontrar el nombre, deberiamos iterar en el arbol de directorios obteniendo los clusters de cada archivo y fijarnos si el cluster 157 se encuentra entre estos.
+3) Las entradas se guardan en un espacio de memoria llamado cluster, en FAT32 tiene entradas de 32 Bytes y cada directorio puede tener hasta 65536 entradas, en nuestra implementacion de FAT-FUSE tenemos un maximo de 16 entradas (Sin contar el punto extra 7).
+4) Al ejecutar ls -l se ejecutan estos pasos:
+Dependiendo del fs en que este montado se ejecuta una funcion definida en un modulo dentro del kernel (En nuestro caso FUSE y sus operaciones)
+    * Se llama a la Syscall Opendir
+    * Se leen los atributos con la operacion del FS correspondiente (Getattr)
+    * Se leen las entradas de los directorios (Readdir)
+    * Se llama a la Syscall Releasedir
+6) Nosotros trabajamos sobre una abstraccion donde no es necesario actualizar la tabla FAT cada vez que se modifique, pero existe a mas bajo nivel un procedimiento encargado de esta sincronizacion
+7) Si, tiene un tamaño fijo de 512MB.
